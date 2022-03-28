@@ -71,6 +71,193 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-分布式事务解决方案之TCC" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/" class="article-date">
+  <time class="dt-published" datetime="2022-03-28T11:11:14.000Z" itemprop="datePublished">2022-03-28</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/">分布式事务解决方案之TCC</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h3 id="1-TCC分布式事务模型"><a href="#1-TCC分布式事务模型" class="headerlink" title="1. TCC分布式事务模型"></a>1. TCC分布式事务模型</h3><h4 id="1-1需要业务系统提供三段业务逻辑："><a href="#1-1需要业务系统提供三段业务逻辑：" class="headerlink" title="1.1需要业务系统提供三段业务逻辑："></a>1.1需要业务系统提供三段业务逻辑：</h4><ol>
+<li><p>一阶段: 初步操作 Try：完成所有业务检查，预留必须的业务资源。</p>
+</li>
+<li><p>二阶段: 确认操作 Confirm：真正执行的业务逻辑，不做任何业务检查，只使用 Try 阶段预留的业务资源。因此，只要 Try 操作成功，Confirm 必须能成功。另外，Confirm 操作需满足幂等性，保证一笔分布式事务能且只能成功一次。</p>
+</li>
+<li><p>二阶段: 取消操作 Cancel：释放 Try 阶段预留的业务资源。同样的，Cancel 操作也需要满足幂等性。</p>
+</li>
+</ol>
+<p>其中一个事务中<code>确认</code>和<code>取消</code>只有一个会执行. 所以 TCC 模型是两阶段操作模型.</p>
+<h4 id="1-2-需要实现的功能"><a href="#1-2-需要实现的功能" class="headerlink" title="1.2 需要实现的功能"></a>1.2 需要实现的功能</h4><ul>
+<li>支持空回滚: 没有执行一阶段Try, 调用二阶段回滚方法返回成功</li>
+<li>幂等: 所有方法执行一次和多次结果一样</li>
+<li>防悬挂: 对于同一个全局事务, 执行了二阶段操作, 不能再执行一阶段操作</li>
+<li>并发控制: 一个全局事务完成了一阶段之后, 不需要完成二阶段操作, 其他事务即可操作该记录</li>
+</ul>
+<h3 id="2-账务系统TCC模型设计"><a href="#2-账务系统TCC模型设计" class="headerlink" title="2. 账务系统TCC模型设计"></a>2. 账务系统TCC模型设计</h3><p>以金融核心链路里的账务服务来分析一下。首先一个最简化的账务模型就是图中所列，每个用户或商户有一个账户及其可用余额。然后，分析下账务服务的所有业务逻辑操作，无论是交易、充值、转账、退款等，都可以认为是对账户的加钱与扣钱。</p>
+<p><img src="http://101.132.193.91:4999/Public/Uploads/2020-08-17/5f3a470f0ab1f.png"></p>
+<p>可以把账务系统拆分成两套 TCC 接口，即两个 TCC Resource:</p>
+<ul>
+<li>一个是加钱 TCC 接口;</li>
+<li>一个是扣钱 TCC 接口。</li>
+</ul>
+<h4 id="2-1扣钱流程"><a href="#2-1扣钱流程" class="headerlink" title="2.1扣钱流程"></a>2.1扣钱流程</h4><p> <img src="http://101.132.193.91:4999/Public/Uploads/2020-08-17/5f3a47ac6b477.png"></p>
+<ul>
+<li>检查悬挂, Try 操作账户扣钱, 插入一条流水记录, 状态为<code>PROCESSING</code></li>
+<li>Confirm 不操作账户, 更新记录状态为 <code>CONFIRM</code></li>
+<li>Cancel 读取流水记录, 操作账户加钱, 更新记录状态为 <code>CANCEL</code></li>
+</ul>
+<h4 id="2-2-加钱流程"><a href="#2-2-加钱流程" class="headerlink" title="2.2 加钱流程"></a>2.2 加钱流程</h4><ul>
+<li>检查悬挂, Try 不操作账户, 插入一条流水记录, 状态为<code>PROCESSING</code></li>
+<li>Confirm 读取流水记录, 给账户加钱, 更新记录状态为 <code>CONFIRM</code></li>
+<li>Cancel 不操作账户, 更新记录状态为 <code>CANCEL</code></li>
+</ul>
+<h3 id="3-代码实现"><a href="#3-代码实现" class="headerlink" title="3. 代码实现"></a>3. 代码实现</h3><h4 id="3-1-数据库实现"><a href="#3-1-数据库实现" class="headerlink" title="3.1 数据库实现"></a>3.1 数据库实现</h4><ul>
+<li>账户表</li>
+<li>转账事务表</li>
+</ul>
+<p><img src="/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/account_table.jpg"></p>
+<h4 id="3-2-操作流程"><a href="#3-2-操作流程" class="headerlink" title="3.2 操作流程"></a>3.2 操作流程</h4><p>扣钱操作: 扣减n 元</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>转账事务表</th>
+<th>账户表</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Try</td>
+<td>检查悬挂, 插入一条记录, 状态为<code>进行中</code></td>
+<td><code>money</code>减去n</td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>根据<code>gtx_id</code>查询记录, 并标记为<code>已确认</code></td>
+<td>不操作</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>根据<code>gtx_id</code>查询记录, 获取<code>amount</code>, 标记为<code>已取消</code></td>
+<td><code>money</code>增加n</td>
+</tr>
+</tbody></table>
+<p>加钱操作: 增加n 元</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>转账事务表</th>
+<th>账户表</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Try</td>
+<td>检查悬挂, 插入一条记录, 状态为<code>进行中</code></td>
+<td>不操作</td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>根据<code>gtx_id</code>查询记录,获取<code>amount</code>, 并标记为<code>已确认</code></td>
+<td><code>money</code>增加n</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>根据<code>gtx_id</code>查询记录,  标记为<code>已取消</code></td>
+<td>不操作</td>
+</tr>
+</tbody></table>
+<ul>
+<li><code>检查悬挂</code>: 根据<code>gtx_id</code>查询记录, 如果存在则不操作, 直接返回.</li>
+</ul>
+<h4 id="3-3-功能实现"><a href="#3-3-功能实现" class="headerlink" title="3.3 功能实现"></a>3.3 功能实现</h4><h5 id="3-3-1-空回滚"><a href="#3-3-1-空回滚" class="headerlink" title="3.3.1 空回滚"></a>3.3.1 空回滚</h5><p>在<code>Cancel</code>操作中, 对转账事务表, 根据<code>gtx_id</code>查询记录, 如果没有则直接返回.</p>
+<h5 id="3-3-2-幂等"><a href="#3-3-2-幂等" class="headerlink" title="3.3.2 幂等"></a>3.3.2 幂等</h5><ul>
+<li>Try: 通过<code>检查悬挂</code>实现</li>
+<li>Confirm: 通过根据<code>gtx_id</code>查询转账事务表记录,如果状态不是<code>进行中</code>,则不操作, 返回.</li>
+<li>Cancel: 同上.</li>
+</ul>
+<h5 id="3-3-3-防悬挂"><a href="#3-3-3-防悬挂" class="headerlink" title="3.3.3 防悬挂"></a>3.3.3 防悬挂</h5><p>在Try阶段通过<code>检查悬挂</code>实现.</p>
+<h5 id="3-3-4-并发控制"><a href="#3-3-4-并发控制" class="headerlink" title="3.3.4 并发控制"></a>3.3.4 并发控制</h5><p>通过<code>转账事务表</code>的事务记录实现并发隔离, <code>Try</code>, <code>Confirm</code>, <code>Cancel</code>每个操作各自都是原子的.</p>
+<p>扣钱操作: 事务1 扣减m 元, 事务2 扣减 n元</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>事务1</th>
+<th>事务2</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Try</td>
+<td>当前<code>money</code>减去m</td>
+<td><code>money</code>在<code>money</code>减去m的基础上减去n</td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>不操作</td>
+<td>不操作</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>当前<code>money</code>增加m</td>
+<td>当前<code>money</code>增加n</td>
+</tr>
+</tbody></table>
+<p>加钱操作:事务1 增加m 元, 事务2 增加n元</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>事务1</th>
+<th>事务2</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Try</td>
+<td>不操作</td>
+<td>不操作</td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>当前<code>money</code>增加m</td>
+<td><code>money</code>在<code>money</code>增加m的基础上增加n</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>不操作</td>
+<td>不操作</td>
+</tr>
+</tbody></table>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/" data-id="cl1am3bwg0001cu2c26aa5n8v" data-title="分布式事务解决方案之TCC" class="article-share-link">Share</a>
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-lookgood" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="/2022/03/28/lookgood/" class="article-date">
@@ -154,9 +341,9 @@
 
 
   
-    <article id="post-分布式事务解决方案" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+    <article id="post-分布式事务解决方案2" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
-    <a href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" class="article-date">
+    <a href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%882/" class="article-date">
   <time class="dt-published" datetime="2022-03-28T06:02:31.000Z" itemprop="datePublished">2022-03-28</time>
 </a>
     
@@ -168,7 +355,7 @@
         
   
     <h1 itemprop="name">
-      <a class="p-name article-title" href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">分布式事务解决方案</a>
+      <a class="p-name article-title" href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%882/">分布式事务解决方案</a>
     </h1>
   
 
@@ -329,7 +516,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" data-id="cl1al73qs0000yx2cbws53gjl" data-title="分布式事务解决方案" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%882/" data-id="cl1am3bwb0000cu2c03ba4qud" data-title="分布式事务解决方案" class="article-share-link">Share</a>
       
       
       
@@ -584,44 +771,6 @@
 
 
   
-    <article id="post-about/me" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
-  <div class="article-meta">
-    <a href="/2022/03/28/about/me/" class="article-date">
-  <time class="dt-published" datetime="2022-03-28T02:27:08.000Z" itemprop="datePublished">2022-03-28</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="p-name article-title" href="/2022/03/28/about/me/">page</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="e-content article-entry" itemprop="articleBody">
-      
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2022/03/28/about/me/" data-id="cl1aci7uy000llj2c4yxzejcj" data-title="page" class="article-share-link">Share</a>
-      
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-
-  
 
 
   <nav id="page-nav">
@@ -679,6 +828,10 @@
       <ul>
         
           <li>
+            <a href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/">分布式事务解决方案之TCC</a>
+          </li>
+        
+          <li>
             <a href="/2022/03/28/lookgood/">lookgood</a>
           </li>
         
@@ -687,15 +840,11 @@
           </li>
         
           <li>
-            <a href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">分布式事务解决方案</a>
+            <a href="/2022/03/28/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%882/">分布式事务解决方案</a>
           </li>
         
           <li>
             <a href="/2022/03/28/haha-1/">haha</a>
-          </li>
-        
-          <li>
-            <a href="/2022/03/28/hello-world/">Hello World</a>
           </li>
         
       </ul>
