@@ -1,8 +1,13 @@
 ---
-title: 分布式事务解决方案
-date: 2022-03-28 14:02:31
+title: 分布式事务解决方案之TCC
+date: 2022-03-29 19:11:14
 tags:
+categories:
+- Cloud
+- 分布式
 ---
+
+
 ### 1. TCC分布式事务模型
 
 #### 1.1需要业务系统提供三段业务逻辑：
@@ -50,10 +55,9 @@ tags:
 
 - 账户表
 - 转账事务表
+![](2022/03/28/Cloud/distributed/分布式事务解决方案之TCC/account_table.jpg)
 
-![](分布式事务解决方案/account_table.jpg)
-
-
+{% asset_img 分布式事务解决方案之TCC/account_table.jpg 这是一个图片%}
 
 #### 3.2 操作流程
 
