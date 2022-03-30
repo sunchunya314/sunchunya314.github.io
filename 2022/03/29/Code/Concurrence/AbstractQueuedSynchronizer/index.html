@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.1.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://cdn.jsdelivr.net'>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  <title>AbstractQueuedSynchronizer - Hexo</title>
+
+  
+    <meta name="description" content="原理段1 Provides a framework for implementing blocking locks and related synchronizers (semaphores, events, etc) that rely on first-in-first-out (FIFO) wait queues.  This class is designed to be a useful">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AbstractQueuedSynchronizer">
+<meta property="og:url" content="http://example.com/2022/03/29/Code/Concurrence/AbstractQueuedSynchronizer/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="原理段1 Provides a framework for implementing blocking locks and related synchronizers (semaphores, events, etc) that rely on first-in-first-out (FIFO) wait queues.  This class is designed to be a useful">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-03-29T03:12:53.000Z">
+<meta property="article:modified_time" content="2022-03-30T15:06:07.841Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="并发">
+<meta property="article:tag" content="多线程">
+<meta name="twitter:card" content="summary">
+  
+  
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+
+  
+</head>
+
+<body>
+  
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+
+<header class="header">
+
+<div class="logo-wrap"><a class="title" href="/"><div class="main">Hexo</div></a></div>
+<nav class="menu dis-select"></nav></header>
+
+<div class="widgets">
+
+<div class="widget-wrap single" id="toc"><div class="widget-header cap dis-select"><span class="name">TOC</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-text">原理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AE%B51"><span class="toc-text">段1</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AE%B52"><span class="toc-text">段2</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E6%B3%95"><span class="toc-text">用法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E4%B8%BE%E4%BE%8B"><span class="toc-text">使用举例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link"><span class="toc-text">Usage Examples</span></a></li></ol></div></div></div>
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/code/">code</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/code/concurrence/">concurrence</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2022-03-29T03:12:53.000Z">2022-03-29</time></div></div>
+
+<article class='content md post'>
+<h1 class="article-title"><span>AbstractQueuedSynchronizer</span></h1>
+<h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><h4 id="段1"><a href="#段1" class="headerlink" title="段1"></a>段1</h4><ul>
+<li>Provides a framework for implementing blocking locks and related</li>
+<li>synchronizers (semaphores, events, etc) that rely on</li>
+<li>first-in-first-out (FIFO) wait queues.  This class is designed to</li>
+<li>be a useful basis for most kinds of synchronizers that rely on a</li>
+<li>single atomic <tt>int</tt> value to represent state. Subclasses</li>
+<li>must define the protected methods that change this state, and which</li>
+<li>define what that state means in terms of this object being acquired</li>
+<li>or released. Given these, the other methods in this class carry</li>
+<li>out all queuing and blocking mechanics. Subclasses can maintain</li>
+<li>other state fields, but only the atomically updated <tt>int</tt></li>
+<li>value manipulated using methods {@link #getState}, {@link</li>
+<li>#setState} and {@link #compareAndSetState} is tracked with respect</li>
+<li>to synchronization.</li>
+</ul>
+<blockquote>
+<p>提供一个基于先进先出的等待队列的框架实现阻塞锁和相关的同步器(例如信号量, 事件等).<br>这个类仅仅依靠一个int的原子类来管理状态的设计作为大部分的同步器的基础.<br>子类必须定义执行方法来改变这个状态, 并且定义当这个对象被<code>acquired</code>和<code>released</code>的时候对应的状态含义.<br>考虑到这些, 该类中其他方法执行所有的排队阻塞机制.<br>子类可以维护其他的状态字段, 但是只有使用方法<code>getState</code>,<code>setState</code>和<code>compareAndSetState</code>进行原子更新的<code>int</code>值是用来追踪同步的.</p>
+</blockquote>
+<h4 id="段2"><a href="#段2" class="headerlink" title="段2"></a>段2</h4><ul>
+<li><p>Subclasses should be defined as non-public internal helper</li>
+<li>classes that are used to implement the synchronization properties</li>
+<li>of their enclosing class.  Class</li>
+<li><tt>AbstractQueuedSynchronizer</tt> does not implement any</li>
+<li>synchronization interface.  Instead it defines methods such as</li>
+<li>{@link #acquireInterruptibly} that can be invoked as</li>
+<li>appropriate by concrete locks and related synchronizers to</li>
+<li>implement their public methods.</li>
+</ul>
+<blockquote>
+<p>子类应该被定义为非<code>public</code>的内部辅助类用来实现它们封装类的同步属性.<br><code>AbstractQueuedSynchronizer</code>类不实现任何同步接口.<br>它定义了<code>acquireInterruptibly</code>这样的方法被具体的锁视情况调用和相关的同步器来实现它们的公共方法.</p>
+</blockquote>
+<ul>
+<li><p>This class supports either or both a default <em>exclusive</em></li>
+<li>mode and a <em>shared</em> mode. When acquired in exclusive mode,</li>
+<li>attempted acquires by other threads cannot succeed. Shared mode</li>
+<li>acquires by multiple threads may (but need not) succeed. This class</li>
+<li>does not &quot;understand&quot; these differences except in the</li>
+<li>mechanical sense that when a shared mode acquire succeeds, the next</li>
+<li>waiting thread (if one exists) must also determine whether it can</li>
+<li>acquire as well. Threads waiting in the different modes share the</li>
+<li>same FIFO queue. Usually, implementation subclasses support only</li>
+<li>one of these modes, but both can come into play for example in a</li>
+<li>{@link ReadWriteLock}. Subclasses that support only exclusive or</li>
+<li>only shared modes need not define the methods supporting the unused mode.</li>
+</ul>
+<blockquote>
+<p>这个类支持一个默认的互斥模式和一个共享模式.<br>当在互斥模式时被<code>acquire</code>, 其他<code>acquire</code>的线程不能成功.<br>共享模式下多线程同时<code>acquire</code>可能会(不是必须)成功.<br>这个类并不<code>理解</code>这些区别除了在这个机制当一个共享模式<code>acquire</code>成功, 另一个等待线程(如果存在)必须决定是否它也可以<code>acquire</code>.<br>在不同模式下等待的线程共享同一个<code>FIFO</code>队列.<br>通常, 子类只实现支持这些模式中的一个, 但是可以通过<code>ReadWriteLock</code>来全部演示.<br>只支持互斥模式或者共享模式的子类不需要定义方法来支持没用到的模式.</p>
+</blockquote>
+<h1 id="ConditionObject"><a href="#ConditionObject" class="headerlink" title="ConditionObject"></a>ConditionObject</h1><ul>
+<li><p>This class defines a nested {@link ConditionObject} class that</li>
+<li>can be used as a {@link Condition} implementation by subclasses</li>
+<li>supporting exclusive mode for which method {@link</li>
+<li>#isHeldExclusively} reports whether synchronization is exclusively</li>
+<li>held with respect to the current thread, method {@link #release}</li>
+<li>invoked with the current {@link #getState} value fully releases</li>
+<li>this object, and {@link #acquire}, given this saved state value,</li>
+<li>eventually restores this object to its previous acquired state.  No</li>
+<li><tt>AbstractQueuedSynchronizer</tt> method otherwise creates such a</li>
+<li>condition, so if this constraint cannot be met, do not use it.  The</li>
+<li>behavior of {@link ConditionObject} depends of course on the</li>
+<li>semantics of its synchronizer implementation.</li>
+</ul>
+<blockquote>
+<p>这个类定义了一个嵌套类<code>ConditionObject</code>, 可以被子类用作支持互斥模式的<code>Condition</code>实现.<br>通过方法<code>isHeldExclusively</code>知道是否同步正在被当前线程互斥持有,被当前<code>getState</code>值调用的方法<code>release</code>完全的释放这个对象.<br>并且<code>acquire</code> 给予这个保存的<code>acquired</code>状态.<br>最终这个对象重新回到它先前的<code>acquired</code>状态.<br>没有一个<code>AbstractQueuedSynchronizer</code>方法创建一个<code>condition</code> 所以如果这个约束不能达成, 那么不用使用它.<br><code>ConditionObject</code>的行为依赖于同步器的实现机制.</p>
+</blockquote>
+<ul>
+<li><p>This class provides inspection, instrumentation, and monitoring</li>
+<li>methods for the internal queue, as well as similar methods for</li>
+<li>condition objects. These can be exported as desired into classes</li>
+<li>using an <tt>AbstractQueuedSynchronizer</tt> for their</li>
+<li>synchronization mechanics.</li>
+</ul>
+<blockquote>
+<p>这个类为内部队列和<code>conditon</code>对象提供观测, 构件, 监控器方法.<br>这些可以被导出到使用<code>AbstractQueuedSynchronizer</code>作为它们同步机制的类里.</p>
+</blockquote>
+<ul>
+<li><p>Serialization of this class stores only the underlying atomic</li>
+<li>integer maintaining state, so deserialized objects have empty</li>
+<li>thread queues. Typical subclasses requiring serializability will</li>
+<li>define a <tt>readObject</tt> method that restores this to a known</li>
+<li>initial state upon deserialization.</li>
+</ul>
+<blockquote>
+<p>该类的序列化仅仅保存底层的原子<code>integer</code>维护状态, 所以解序列化对象只有空的线程队列.<br>经典的子类需要序列化将定义一个<code>readObject</code>方法, 解序列化时用来重新加载自身数据到一个到初始化状态.</p>
+</blockquote>
+<h2 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h2><ul>
+<li><p>To use this class as the basis of a synchronizer, redefine the</li>
+<li>following methods, as applicable, by inspecting and&#x2F;or modifying</li>
+<li>the synchronization state using {@link #getState}, {@link</li>
+<li>#setState} and&#x2F;or {@link #compareAndSetState}:</li>
+</ul>
+<blockquote>
+<p>为了使用这个类作为一个同步器的基础, 重新定义以下方法, 以作可用的, 通过观测或修改同步状态<br><code>getState</code><br><code>setState</code><br><code>compareAndSetState</code></p>
+</blockquote>
+ <ul>
+ <li> tryAcquire
+ <li> tryRelease
+ <li> tryAcquireShared
+ <li> tryReleaseShared
+ <li> isHeldExclusively
+ </ul>
+ 
+<ul>
+<li>Each of these methods by default throws {@link</li>
+<li>UnsupportedOperationException}.  Implementations of these methods</li>
+<li>must be internally thread-safe, and should in general be short and</li>
+<li>not block. Defining these methods is the <em>only</em> supported</li>
+<li>means of using this class. All other methods are declared</li>
+<li><tt>final</tt> because they cannot be independently varied.</li>
+</ul>
+<blockquote>
+<p>以上这些方法中每个方法都默认会抛出异常<code>UnsupportedOperationException</code>.<br>这些方法的实现必须是线程安全的, 并且应该大体是简短, 非阻塞的.<br>定义这些方法是使用该类的唯一支持的方法.<br>所有其他的方法被定义为<code>final</code>因为它们不能被单独改变.</p>
+</blockquote>
+<ul>
+<li><p>You may also find the inherited methods from {@link</li>
+<li>AbstractOwnableSynchronizer} useful to keep track of the thread</li>
+<li>owning an exclusive synchronizer.  You are encouraged to use them</li>
+<li>– this enables monitoring and diagnostic tools to assist users in</li>
+<li>determining which threads hold locks.</li>
+<li></li>
+<li><p>Even though this class is based on an internal FIFO queue, it</li>
+<li>does not automatically enforce FIFO acquisition policies.  The core</li>
+<li>of exclusive synchronization takes the form:</li>
+</ul>
+<blockquote>
+<p>你可能一发现了从<code>AbstractOwnableSynchronizer</code>继承的方法有利于追踪拥有一个互斥同步器的线程.<br>你被鼓励使用它们.<br>这个使得监控器和诊断工具帮助用户决定哪一个线程获取锁.</p>
+<p>即使该类是基于一个内部<code>FIFO</code>队列, 它并不会自动的强迫<code>FIFO</code>获取策略.<br>互斥同步器的核心使用以下形式:</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Acquire:</span><br><span class="line">    while (!tryAcquire(arg)) &#123;</span><br><span class="line">         enqueue thread if it is not already queued;</span><br><span class="line">         possibly block current thread;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">Release:</span><br><span class="line">    if (tryRelease(arg))</span><br><span class="line">       unblock the first queued thread;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>(Shared mode is similar but may involve cascading signals.)</li>
+</ul>
+<blockquote>
+<p>共享模式类似, 但是可能包括大量的信号</p>
+</blockquote>
+<ul>
+<li><p><a name="barging">Because checks in acquire are invoked before</li>
+<li>enqueuing, a newly acquiring thread may <em>barge</em> ahead of</li>
+<li>others that are blocked and queued.  However, you can, if desired,</li>
+<li>define <tt>tryAcquire</tt> and&#x2F;or <tt>tryAcquireShared</tt> to</li>
+<li>disable barging by internally invoking one or more of the inspection</li>
+<li>methods, thereby providing a <em>fair</em> FIFO acquisition order.</li>
+<li>In particular, most fair synchronizers can define <tt>tryAcquire</tt></li>
+<li>to return <tt>false</tt> if {@link #hasQueuedPredecessors} (a method</li>
+<li>specifically designed to be used by fair synchronizers) returns</li>
+<li><tt>true</tt>.  Other variations are possible.</li>
+</ul>
+<blockquote>
+<p>因为在<code>入队</code>之前<code>acquire</code>包含了检测, 一个新的正在<code>acquire</code>的线程可能会<code>插队</code>到其他正在排队或阻塞的线程前面.<br>然而, 你可以, 如果愿意的话定义<code>tryAcquire</code>并且&#x2F;或者<code>tryAcquireShared</code>来禁止<code>插队</code>, 通过内部调用一个或则多个监测方法,由此提供一个公平的<code>FIFO</code>获取顺序.<br>实践中, 大部分公平的同步器可以定义<code>tryAcquire 来返回</code>false<code>, 如果</code>hasQueuedPredecessors<code>(为公平同步器专门设计的一个方法)返回</code>true&#96;.<br>也可以是其他的变化.</p>
+</blockquote>
+<ul>
+<li><p>Throughput and scalability are generally highest for the</li>
+<li>default barging (also known as <em>greedy</em>,</li>
+<li><em>renouncement</em>, and <em>convoy-avoidance</em>) strategy.</li>
+<li>While this is not guaranteed to be fair or starvation-free, earlier</li>
+<li>queued threads are allowed to recontend before later queued</li>
+<li>threads, and each recontention has an unbiased chance to succeed</li>
+<li>against incoming threads.  Also, while acquires do not</li>
+<li>&quot;spin&quot; in the usual sense, they may perform multiple</li>
+<li>invocations of <tt>tryAcquire</tt> interspersed with other</li>
+<li>computations before blocking.  This gives most of the benefits of</li>
+<li>spins when exclusive synchronization is only briefly held, without</li>
+<li>most of the liabilities when it isn’t. If so desired, you can</li>
+<li>augment this by preceding calls to acquire methods with</li>
+<li>“fast-path” checks, possibly prechecking {@link #hasContended}</li>
+<li>and&#x2F;or {@link #hasQueuedThreads} to only do so if the synchronizer</li>
+<li>is likely not to be contended.</li>
+</ul>
+<blockquote>
+<p>吞吐量和可观测行对于默认的冲突(也被称为贪婪的放弃和车队避让)策略来说是最重要的.<br>但是这不能保证公平或免于饥饿, 先入队的线程允许和后入队的线程竞争, 并且每次竞争有一个无差别的机会获得成功.<br>并且, 当<code>acquire</code>没有在通常意义上的自旋, 在阻塞之前它们可能会多次调用<code>tryAcquire</code>并掺杂着其他的计算.<br>当互斥同步纸只是唯一持有时, 这个给自旋带来了极大的优势, 不是这个情况就会失去很多优势.<br>如果需要的话, 你可以增加这个通过先前的调用来请求方法<code>最快路径</code>检查, 使用预检查的方法<code>hasContended</code>和&#x2F;或<code>hasQueuedThreads</code>可以使得同步器减少竞争的情况.</p>
+</blockquote>
+<ul>
+<li><p>This class provides an efficient and scalable basis for</li>
+<li>synchronization in part by specializing its range of use to</li>
+<li>synchronizers that can rely on <tt>int</tt> state, acquire, and</li>
+<li>release parameters, and an internal FIFO wait queue. When this does</li>
+<li>not suffice, you can build synchronizers from a lower level using</li>
+<li>{@link java.util.concurrent.atomic atomic} classes, your own custom</li>
+<li>{@link java.util.Queue} classes, and {@link LockSupport} blocking</li>
+<li>support.</li>
+</ul>
+<blockquote>
+<p>这个类为同步器提供一个高效的, 可观测的基准的方式一部分是依靠以下参数<br>1.<code>int</code> state<br>2.<code>acquire</code><br>3.<code>release</code><br>4.一个<code>FIFO</code>等待队列<br>如果这些还不满足需要, 你可以在一个低级别上自己构建同步器, 使用如下元素<br>1.<code>java.util.concurrent.atomic</code>包下原子类<br>2.<code>java.util.Queue</code>队列类<br>3.<code>LockSupport</code>阻塞支持</p>
+</blockquote>
+<h3 id="使用举例"><a href="#使用举例" class="headerlink" title="使用举例"></a>使用举例</h3><ul>
+<li><h3>Usage Examples</h3></li>
+<li><p>Here is a non-reentrant mutual exclusion lock class that uses</li>
+<li>the value zero to represent the unlocked state, and one to</li>
+<li>represent the locked state. While a non-reentrant lock</li>
+<li>does not strictly require recording of the current owner</li>
+<li>thread, this class does so anyway to make usage easier to monitor.</li>
+<li>It also supports conditions and exposes</li>
+<li>one of the instrumentation methods:</li>
+</ul>
+<blockquote>
+<p>下面是一个不可重入的互斥锁类, 使用<code>0</code>代表未锁定状态, <code>1</code>表示锁定状态.<br>因为一个非可重入的锁没有严格要求记录当前拥有线程, 这样实现可以让<code>monitor</code>用起来更简单.<br>它也支持<code>condition</code>和暴露其中的构件方法:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Mutex</span> <span class="keyword">implements</span> <span class="title class_">Lock</span>, java.io.Serializable &#123;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">// 我们的内部帮助类</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">Sync</span> <span class="keyword">extends</span> <span class="title class_">AbstractQueuedSynchronizer</span> &#123;</span><br><span class="line">    <span class="comment">// 报告是否在锁的状态</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="type">boolean</span> <span class="title function_">isHeldExclusively</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> getState() == <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// 获取锁如果state是0</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">tryAcquire</span><span class="params">(<span class="type">int</span> acquires)</span> &#123;</span><br><span class="line">      <span class="type">assert</span> <span class="variable">acquires</span> <span class="operator">=</span>= <span class="number">1</span>; <span class="comment">// Otherwise unused</span></span><br><span class="line">      <span class="keyword">if</span> (compareAndSetState(<span class="number">0</span>, <span class="number">1</span>)) &#123;</span><br><span class="line">        setExclusiveOwnerThread(Thread.currentThread());</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// 释放锁: 设置state为0</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="type">boolean</span> <span class="title function_">tryRelease</span><span class="params">(<span class="type">int</span> releases)</span> &#123;</span><br><span class="line">      <span class="type">assert</span> <span class="variable">releases</span> <span class="operator">=</span>= <span class="number">1</span>; <span class="comment">// Otherwise unused</span></span><br><span class="line">      <span class="keyword">if</span> (getState() == <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalMonitorStateException</span>();</span><br><span class="line">      setExclusiveOwnerThread(<span class="literal">null</span>);</span><br><span class="line">      setState(<span class="number">0</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// 提供condition</span></span><br><span class="line">    Condition <span class="title function_">newCondition</span><span class="params">()</span> &#123; <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ConditionObject</span>(); &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// 解序列化</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">readObject</span><span class="params">(ObjectInputStream s)</span></span><br><span class="line">        <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;</span><br><span class="line">      s.defaultReadObject();</span><br><span class="line">      setState(<span class="number">0</span>); <span class="comment">// reset to unlocked state</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">//  sync对象实现最复杂的工作</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Sync</span> <span class="variable">sync</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Sync</span>();</span><br><span class="line"> </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">lock</span><span class="params">()</span>                &#123; sync.acquire(<span class="number">1</span>); &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">tryLock</span><span class="params">()</span>          &#123; <span class="keyword">return</span> sync.tryAcquire(<span class="number">1</span>); &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">unlock</span><span class="params">()</span>              &#123; sync.release(<span class="number">1</span>); &#125;</span><br><span class="line">  <span class="keyword">public</span> Condition <span class="title function_">newCondition</span><span class="params">()</span>   &#123; <span class="keyword">return</span> sync.newCondition(); &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isLocked</span><span class="params">()</span>         &#123; <span class="keyword">return</span> sync.isHeldExclusively(); &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">hasQueuedThreads</span><span class="params">()</span> &#123; <span class="keyword">return</span> sync.hasQueuedThreads(); &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">lockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">    sync.acquireInterruptibly(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">tryLock</span><span class="params">(<span class="type">long</span> timeout, TimeUnit unit)</span></span><br><span class="line">      <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">    <span class="keyword">return</span> sync.tryAcquireNanos(<span class="number">1</span>, unit.toNanos(timeout));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>Here is a latch class that is like a {@link CountDownLatch}</li>
+<li>except that it only requires a single <tt>signal</tt> to</li>
+<li>fire. Because a latch is non-exclusive, it uses the <tt>shared</tt></li>
+<li>acquire and release methods.</li>
+</ul>
+<blockquote>
+<p>下面是一个类似<code>CountDownLatch</code>的门栓类<br>它只<code>acquire</code>一个单一的<code>signal</code>来唤醒.<br>因为一个门栓是非互斥的, 它使用<code>shared</code>来<code>acquire</code>和<code>release</code>方法.</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">BooleanLatch</span> &#123;</span><br><span class="line">    <span class="comment">// 内部帮助类</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">Sync</span> <span class="keyword">extends</span> <span class="title class_">AbstractQueuedSynchronizer</span> &#123;</span><br><span class="line">      <span class="comment">// 是否唤醒 state: 非0唤醒, 0未唤醒</span></span><br><span class="line">      <span class="type">boolean</span> <span class="title function_">isSignalled</span><span class="params">()</span> &#123; <span class="keyword">return</span> getState() != <span class="number">0</span>; &#125;</span><br><span class="line">      <span class="comment">// 唤醒 1, 未唤醒 -1, 返回值&lt;0, 表示可以获取</span></span><br><span class="line">      <span class="keyword">protected</span> <span class="type">int</span> <span class="title function_">tryAcquireShared</span><span class="params">(<span class="type">int</span> ignore)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> isSignalled() ? <span class="number">1</span> : -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 将state设为1 来释放</span></span><br><span class="line">      <span class="keyword">protected</span> <span class="type">boolean</span> <span class="title function_">tryReleaseShared</span><span class="params">(<span class="type">int</span> ignore)</span> &#123;</span><br><span class="line">        setState(<span class="number">1</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Sync</span> <span class="variable">sync</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Sync</span>();</span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSignalled</span><span class="params">()</span> &#123; <span class="keyword">return</span> sync.isSignalled(); &#125;</span><br><span class="line">    <span class="comment">// 唤醒其他线程</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">signal</span><span class="params">()</span>         &#123; sync.releaseShared(<span class="number">1</span>); &#125;</span><br><span class="line">    <span class="comment">// 当前线程等待</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">await</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException &#123; sync.acquireSharedInterruptibly(<span class="number">1</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>When meaningful, each synchronizer supports:</p>
+<ul>
+<li>Nonblocking synchronization attempts (for example,<br>tryLock) as well as blocking versions.</li>
+<li>Optional timeouts, so applications can give up waiting.</li>
+<li>Cancellability via interruption, usually separated into one<br>version of acquire that is cancellable, and one that isn’t</li>
+</ul>
+<p>同步器应该支持:</p>
+<ul>
+<li>非阻塞的同步尝试(比如, <code>tryLock</code>) 和阻塞版本.</li>
+<li>可选的超时, 这样应用可以放弃等待.</li>
+<li>通过中断来取消, 通常是分开在两个版本的<code>acquire</code>,一个是可取消, 一个不能.</li>
+</ul>
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="header cap theme"><span>READ NEXT</span></section><section class="body fs14"><a id="next" href="/2022/03/29/Cloud/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/">分布式事务解决方案之TCC<span class="note">Older</span></a><div class="line"></div></section></div>
+
+
+
+
+
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="text"><p>All articles in this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</p>
+<p>This site was deployed by <a href="http://example.com/">@John Doe</a> using <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1" title="v1.6.1">Stellar</a>.</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js',
+    sitesjs: '/js/plugins/sites.js',
+    friendsjs: '/js/plugins/friends.js',
+  };
+
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://cdn.jsdelivr.net/npm/vanilla-lazyload@17.3.1/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@6/swiper-bundle.min.css","js":"https://unpkg.com/swiper@6/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://cdn.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://cdn.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://cdn.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>
