@@ -1,7 +1,9 @@
 ---
 title: 分布式事务解决方案之TCC
-date: 2022-03-29 19:11:14
-tags:
+date: 2022-03-29 10:11:14
+tags: 
+- Cloud
+- 分布式
 categories:
 - Cloud
 - 分布式
@@ -55,7 +57,7 @@ categories:
 
 - 账户表
 - 转账事务表
-![](2022/03/28/Cloud/distributed/分布式事务解决方案之TCC/account_table.jpg)
+![](2022/03/29/Cloud/distributed/分布式事务解决方案之TCC/account_table.jpg)
 
 {% asset_img 分布式事务解决方案之TCC/account_table.jpg 这是一个图片%}
 
