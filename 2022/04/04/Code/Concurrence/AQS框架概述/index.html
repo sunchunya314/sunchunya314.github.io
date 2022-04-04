@@ -4,7 +4,7 @@
 <head>
   <meta name="generator" content="Hexo 6.1.0">
   <meta charset="utf-8">
-  <meta name="robots" content="noindex,follow">
+  
 
   <meta http-equiv='x-dns-prefetch-control' content='on' />
   <link rel='dns-prefetch' href='https://cdn.jsdelivr.net'>
@@ -17,15 +17,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#f8f8f8">
-  <title>Archives - Hexo</title>
+  <title>AQS框架概述 - Hexo</title>
 
   
-    <meta property="og:type" content="website">
-<meta property="og:title" content="Archives">
-<meta property="og:url" content="http://example.com/archives/2022/03/index.html">
+    <meta name="description" content="原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This framework provide">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AQS框架概述">
+<meta property="og:url" content="http://example.com/2022/04/04/Code/Concurrence/AQS%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This framework provide">
 <meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-04-04T02:16:55.000Z">
+<meta property="article:modified_time" content="2022-04-04T03:56:14.966Z">
 <meta property="article:author" content="John Doe">
+<meta property="article:tag" content="并发">
+<meta property="article:tag" content="多线程">
 <meta name="twitter:card" content="summary">
   
   
@@ -49,7 +55,7 @@
 
 
   <div class='l_body' id='start'>
-    <aside class='l_left' layout=''>
+    <aside class='l_left' layout='post'>
     
 
 
@@ -59,127 +65,70 @@
 <nav class="menu dis-select"></nav></header>
 
 <div class="widgets">
-<div class="widget-wrap" id="markdown"><div class="widget-header cap dis-select"><span class="name">Stellar 入门指南</span></div><div class="widget-body fs14"><p>欢迎使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/">Stellar</a> 主题，下面是您的入门指南，祝您使用愉快！<br><br><br><strong>第一步</strong><br>创建 <code>blog/_config.stellar.yml</code> 文件，在此文件中填写需要自定义的主题配置。<br><br><br><strong>第二步</strong><br>创建 <code>blog/source/_data/widgets.yml</code> 文件，此文件中填写需要自定义的侧边栏组件，例如 <code>welcome</code> 组件。<br><br><br>如果有任何疑问，请先查阅<a target="_blank" rel="noopener" href="https://xaoxuu.com/wiki/stellar/">文档</a>，如果文档中没有提供，请提 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/issues/">issue</a> 向开发中询问。</p>
-</div></div>
 
-<div class="widget-wrap" id="recent"><div class="widget-header cap dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><div class="line"></div><a class="more-item" href="/2022/04/04/Code/Concurrence/AQS%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0/"><div class="cap"><time>2022-04-04</time><span>code</span></div><span class="title">AQS框架概述</span></a><div class="line"></div><a class="more-item" href="/2022/03/29/Code/Concurrence/AbstractQueuedSynchronizer/"><div class="cap"><time>2022-04-04</time><span>code</span></div><span class="title">AbstractQueuedSynchronizer</span></a><div class="line"></div><a class="more-item" href="/2022/03/29/Cloud/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/"><div class="cap"><time>2022-03-29</time><span>Cloud</span></div><span class="title">分布式事务解决方案之TCC</span></a><div class="line"></div><a class="more-item" href="/2022/03/28/Demo/"><div class="cap"><time>2022-03-29</time><span>个人博客（第一层级）</span></div><span class="title">Demo</span></a></div></div>
+<div class="widget-wrap single" id="toc"><div class="widget-header cap dis-select"><span class="name">TOC</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%AF%91%E6%96%87"><span class="toc-text">译文</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E4%BB%8B%E7%BB%8D"><span class="toc-text">1.介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-text">1. INTRODUCTION</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%AF%91%E6%96%87-1"><span class="toc-text">译文</span></a></li></ol></div></div></div>
+
+
 </div>
 
 
     </aside>
-    <div class='l_main list'>
+    <div class='l_main'>
       
-  
-
-<header class="header mobile-only">
-
-<div class="logo-wrap"><a class="title" href="/"><div class="main">Hexo</div></a></div>
-</header>
-
-
 
       
 
-  
-  <div class='nav-wrap'>
-  <nav class='sub post cap'>
-    
-      <a href='/'>Recent</a>
-    
-    
-      
-        <a href='/categories'>Categories</a>
-      
-    
-    
-      
-        <a href='/tags'>Tags</a>
-      
-    
-    
-      
-        <a class='active' href='/archives'>Archives</a>
-      
-    
-  </nav>
-</div>
 
-  <div class='post-list'>
-  	
-  	
-  		
-  		
-  			
-  		
-  	
-  		
-  		
-  	
-  		
-  		
-  	
-  		
-  		
-  	
-  	
-  		<article class='' id='archive'>
-  			<div class='archive-header h4'>2022</div>
-  			
-  				
-  		    
-  				
-  		    
-  				
-  		    
-  				
-  		    
-  				<div class='archive-list'>
-            <a class='post fs14' href="/2022/04/04/Code/Concurrence/AQS%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0/">
-    					<time>04-04</time>
-    					<span>
-                
-      						AQS框架概述
-      					
-              </span>
-    				</a>
-          </div>
-  			
-  				<div class='archive-list'>
-            <a class='post fs14' href="/2022/03/29/Code/Concurrence/AbstractQueuedSynchronizer/">
-    					<time>03-29</time>
-    					<span>
-                
-      						AbstractQueuedSynchronizer
-      					
-              </span>
-    				</a>
-          </div>
-  			
-  				<div class='archive-list'>
-            <a class='post fs14' href="/2022/03/29/Cloud/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/">
-    					<time>03-29</time>
-    					<span>
-                
-      						分布式事务解决方案之TCC
-      					
-              </span>
-    				</a>
-          </div>
-  			
-  				<div class='archive-list'>
-            <a class='post fs14' href="/2022/03/28/Demo/">
-    					<time>03-28</time>
-    					<span>
-                
-      						Demo
-      					
-              </span>
-    				</a>
-          </div>
-  			
-  		</article>
-  	
-  </div>
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/code/">code</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/code/concurrence/">concurrence</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2022-04-04T02:16:55.000Z">2022-04-04</time></div></div>
+
+<article class='content md post'>
+<h1 class="article-title"><span>AQS框架概述</span></h1>
+<details>
+<summary>原文</summary>
+<pre>
+Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package 
+are constructed using a small framework based on class AbstractQueuedSynchro- nizer.
+This framework provides common mechanics for atomically managing synchronization state,
+blocking and unblocking threads, and queuing. The paper describes the rationale, design, 
+implementation, usage, and performance of this framework
+
+<p></pre></p>
+</details>
+
+
+<h5 id="译文"><a href="#译文" class="headerlink" title="译文"></a>译文</h5><p>大部分的同步器(锁, 屏障, etc.) 在J2SE1.5 <code>java.util.concurrent</code> 并发集合包<br>是使用一个<code>AbstractQueuedSynchronizer</code>作为基类的轻量级框架构建的. 这个框架为<br>自动管理同步状态, 阻塞唤醒线程, 排队提供通用的机制. 这篇论文对这个框架的原理, 设计<br>, 实现, 用法和性能做了阐述.</p>
+<h2 id="1-介绍"><a href="#1-介绍" class="headerlink" title="1.介绍"></a>1.介绍</h2><details>
+<summary>原文</summary>
+<pre>
+<h2>1. INTRODUCTION</h2>
+Javatm release J2SE-1.5 introduces package java.util.concurrent, a collection of medium-level
+concurrency support classes created via Java Community Process (JCP) Java Specification Request (JSR) 166.
+Among these components are a set of synchronizers – abstract data type (ADT) classes that maintain an 
+internal synchronization state (for example, representing whether a lock is locked or unlocked), 
+operations to update and inspect that state, and at least one method that will cause a calling thread 
+to block if the state requires it, resuming when some other thread changes the synchronization state to permit it.
+Examples include various forms of mutual exclusion locks, read-write locks, semaphores, barriers, futures,
+event indicators, and handoff queues.
+
+<p>As is well-known (see e.g., [2]) nearly any synchronizer can be used to implement nearly any other.<br>For example, it is possible to build semaphores from reentrant locks, and vice versa. However,<br>doing so often entails enough complexity, overhead, and inflexibility to be at best a second-rate engineering option.<br>Further, it is conceptually unattractive. If none of these constructs are intrinsically more primitive than the others,<br>developers should not be compelled to arbitrarily choose one of them as a basis for building others. Instead,<br>JSR166 establishes a small framework centered on class AbstractQueuedSynchro- nizer, that provides common<br>mechanics that are used by most of the provided synchronizers in the package,<br>as well as other classes that users may define themselves.<br></pre></p>
+</details>
+
+<h5 id="译文-1"><a href="#译文-1" class="headerlink" title="译文"></a>译文</h5><p>Java团队根据Java社区流程(JCP)Java特别请求(JSR)166发布J2SE-1.5时引入了<code>java.uti.concurrent</code>并发集合包,<br>一个中间件基本的并发支持类. 这些组件是一个同步器的集合, 抽象数据类型(ADT)类维护一个内部的同步状态(例如, 代表一把锁是锁住还是未锁住),<br>操作来更新或者监控这个状态, 并且当状态需要的时候至少提供一个方法用来调用线程阻塞, 当其他线程改变这个这个同步状态时可以唤醒.<br>例子包括各种形式的互斥锁, 读写锁, 信号量, 屏障, 未来任务, 事件指示, 以及传递队列.</p>
+<p>正如已知的几乎所有同步器都可以用来实现其他的同步器. 例如, 可以使用一个可重入锁可以构建信号量, 反之亦然.<br>然而, 这么做必定会带来大量的复杂度, 堆叠, 以及没有扩展性, 这是一个二流的工程选择.<br>进一步讲, 这么做概念上毫无吸引力. 如果这些结构本质上并没有比其他的更原生, 那么开发们不应该强行的选择它们中的一个来作为构建其他的基础.<br>作为代替, JSR166以 <code>AbstractQueuedSynchronizer</code> 构建了一个轻量框架, 为并发包里的同步器提供了通用的机制, 以及一些其他的用户<br>可以自定义的类.</p>
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="header cap theme"><span>READ NEXT</span></section><section class="body fs14"><a id="next" href="/2022/03/29/Code/Concurrence/AbstractQueuedSynchronizer/">AbstractQueuedSynchronizer<span class="note">Older</span></a><div class="line"></div></section></div>
+
+
+
+
+
+
 
 
       
