@@ -319,15 +319,16 @@ categories:
 
 
 ```java
- class BooleanLatch {
- 
+class BooleanLatch {
+    // 内部帮助类
     private static class Sync extends AbstractQueuedSynchronizer {
+      // 是否唤醒 state: 非0唤醒, 0未唤醒
       boolean isSignalled() { return getState() != 0; }
- 
+      // 唤醒 1, 未唤醒 -1, 返回值<0, 表示可以获取
       protected int tryAcquireShared(int ignore) {
         return isSignalled() ? 1 : -1;
       }
- 
+      // 将state设为1 来释放
       protected boolean tryReleaseShared(int ignore) {
         setState(1);
         return true;
@@ -336,10 +337,41 @@ categories:
  
     private final Sync sync = new Sync();
     public boolean isSignalled() { return sync.isSignalled(); }
+    // 唤醒其他线程
     public void signal()         { sync.releaseShared(1); }
-    public void await() throws InterruptedException {
-      sync.acquireSharedInterruptibly(1);
-    }
-  }
+    // 当前线程等待
+    public void await() throws InterruptedException { sync.acquireSharedInterruptibly(1); }
+}
 
 ```
+
+When meaningful, each synchronizer supports:
+* Nonblocking synchronization attempts (for example,
+tryLock) as well as blocking versions.
+* Optional timeouts, so applications can give up waiting.
+* Cancellability via interruption, usually separated into one
+version of acquire that is cancellable, and one that isn't
+
+同步器应该支持:
+* 非阻塞的同步尝试(比如, `tryLock`) 和阻塞版本.
+* 可选的超时, 这样应用可以放弃等待.
+* 通过中断来取消, 通常是分开在两个版本的`acquire`,一个是可取消, 一个不能.
+
+
+JVM优化锁的策略是0竞争.
+
+
+```groovy
+
+    while (!isOnSyncQueue(node)) {
+        // park
+        LockSupport.park(this);
+        // todo 循环里的park 后面一定跟着中断检查
+        if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+            break;
+    }
+```
+
+
+
+https://sunchunya314.github.io/
