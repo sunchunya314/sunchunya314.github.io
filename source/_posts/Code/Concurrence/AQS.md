@@ -67,7 +67,7 @@ Java团队根据Java社区流程(JCP)Java特别请求(JSR)166发布J2SE-1.5时�
 例子包括各种形式的互斥锁, 读写锁, 信号量, 屏障, 未来任务, 事件指示, 以及传递队列.
 
 正如已知的几乎所有同步器都可以用来实现其他的同步器. 例如, 可以使用一个可重入锁可以构建信号量, 反之亦然.
-然而, 这么做必定会带来大量的复杂度, 堆叠, 以及没有扩展性, 这是一个二流的工程选择.
+然而, 这么做必定会带来大量的复杂度, 开销, 以及没有扩展性, 这是一个二流的工程选择.
 进一步讲, 这么做概念上毫无吸引力. 如果这些结构本质上并没有比其他的更原生, 那么开发们不应该强行的选择它们中的一个来作为构建其他的基础.
 作为代替, JSR166以 `AbstractQueuedSynchronizer` 构建了一个轻量框架, 为并发包里的同步器提供了通用的机制, 以及一些其他的用户
 可以自定义的类.
@@ -112,4 +112,62 @@ and whose implementations are intrinsically intertwined with their associated Lo
 </details>
 
 ##### 译文
-同步器执行两种类型的方法: 至少一个`acquire`来阻塞
+同步器执行两种类型的方法: 至少一个`acquire`来阻塞调用线程直到同步状态允许它继续执行, 至少一个`release`操作来改变同步状态
+来允许一个或多个被阻塞线程解锁.
+`java.util.concurrent`并发包没有为同步器定义一个统一标准的API. 一些是通过通用的接口(例如`Lock`)来定义, 但是其他的包括专门的版本.
+所以, `acquire` 和 `release`操作在不同的类里有不同形式的名字. 例如, 方法`Lock.lock`, `Semaphore.acquire`, 
+`CountDownLatch.await`,`FutureTask.get` 都对应着框架的`acquire`操作. 然而, 这个包并没有为不同的类维护一个一致的协议来支持
+一定范围的通用使用选项范围. 有意义的是, 每个同步器支持如下三点:
+- 非阻塞的同步尝试(例如, `tryLock`)以及阻塞版本.
+- 可选的超时, 应用可以放弃等待.
+- 可通过中断实现取消, 通常分离成两个版本的`acquire`, 一个可以取消, 一个不可以.
+
+同步器状态管理有互斥和共享两种模式, 互斥模式下一次只能允许一个线程通过阻塞点, 共享模式下一次可以通过多个线程.
+通常情况下一个锁类只维护互斥状态, 除了计数信号量可能被很多线程`acquire`作为允许通过的数量.
+为了兼容大部分场景, 框架必须同时支持这两种模式. 
+
+`java.util.concurrent`并发包也定义了`Condition`接口, 支持互斥锁的监控器式的`await`/`signal`操作,
+这些实现是内聚在它们对应的锁类里.
+
+ 
+### 2.2 绩效目标
+
+<details>
+<summary><font size="2" color="grey"><i>原文</i></font></summary>
+<pre>
+<h3>2.2 Performance Goals</h3>
+Java built-in locks (accessed using synchronized methods and blocks) have long been a performance concern, 
+and there is a sizable literature on their construction (e.g., [1], [3]). However, the main focus of such 
+work has been on minimizing space overhead (because any Java object can serve as a lock) and on minimizing 
+time overhead when used in mostly-single-threaded contexts on uniprocessors. Neither of these are 
+especially important concerns for synchronizers: Programmers construct synchronizers only when needed, 
+so there is no need to compact space that would otherwise be wasted, and synchronizers are used almost 
+exclusively in multithreaded designs (increasingly often on multiprocessors) under which at least 
+occasional contention is to be expected. So the usual JVM strategy of optimizing locks primarily 
+for the zero-contention case, leaving other cases to less predictable "slow paths" [12] 
+is not the right tactic for typical multithreaded server applications that rely heavily on 
+java.util.concurrent. 
+
+Instead, the primary performance goal here is scalability: to predictably 
+maintain efficiency even, or especially, when synchronizers are contended. Ideally, the overhead 
+required to pass a synchronization point should be constant no matter how many threads are trying to 
+do so. Among the main goals is to minimize the total amount of time during which some thread is permitted to 
+pass a synchronization point but has not done so. However, this must be balanced against resource considerations, 
+including total CPU time requirements, memory traffic, and thread scheduling overhead. For example, 
+spinlocks usually provide shorter acquisition times than blocking locks, but usually waste cycles and 
+generate memory contention, so are not often applicable.
+
+These goals carry across two general styles of use. Most applications should maximize aggregate throughput, 
+tolerating, at best, probabilistic guarantees about lack of starvation. However in applications such as 
+resource control, it is far more important to maintain fairness of access across threads, tolerating 
+poor aggregate throughput. No framework can decide between these conflicting goals on behalf of users; 
+instead different fairness policies must be accommodated.
+
+No matter how well-crafted they are internally, synchronizers will create performance bottlenecks in some 
+applications. Thus, the framework must make it possible to monitor and inspect basic operations to allow users 
+to discover and alleviate bottlenecks. This minimally (and most usefully) entails providing a way to determine 
+how many threads are blocked.
+</pre>
+</details>
+
+##### 译文

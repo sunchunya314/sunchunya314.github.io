@@ -375,3 +375,175 @@ JVM优化锁的策略是0竞争.
 
 
 https://sunchunya314.github.io/
+
+
+22
+
+```java
+class Code{
+    /*
+     * Various flavors of acquire, varying in exclusive/shared and
+     * control modes.  Each is mostly the same, but annoyingly
+     * different.  Only a little bit of factoring is possible due to
+     * interactions of exception mechanics (including ensuring that we
+     * cancel if tryAcquire throws exception) and other control, at
+     * least not without hurting performance too much.
+     */
+
+    /**
+     * Acquires in exclusive uninterruptible mode for thread already in
+     * queue. Used by condition wait methods as well as acquire.
+     *
+     * @param node the node
+     * @param arg the acquire argument
+     * @return {@code true} if interrupted while waiting
+     */
+    final boolean acquireQueued(final Node node, int arg) {
+        // 局部变量: 标记是否获取失败
+        boolean failed = true;
+        try {
+            // 局部变量: 标记是否被中断
+            boolean interrupted = false;
+            // 自旋
+            for (;;) {
+                // 前节点
+                final Node p = node.predecessor();
+                // 2步检查, 1.前节点是否头结点 2.1为真则尝试获取锁
+                // 1步操作, 1.更新头结点,跳出循环, 返回中断状态
+                /**
+                 * 检查1: 前节点==头结点
+                 *     检查2: 尝试获取锁
+                 *         操作1: 更新头结点并返回false
+                 */
+                if (p == head && tryAcquire(arg)) {
+                    setHead(node);
+                    p.next = null; // help GC
+                    // 失败标记设为false
+                    failed = false;
+                    // 返回中断状态
+                    return interrupted;
+                }
+                // 如果前节点不是头结点, 或者获取锁失败 -> 进行两步检查,两步步操作
+                // 检查1.检查根据前节点等待状态决定当前线程是否需要阻塞 2.检查阻塞是否被中断
+                // 操作1. 根据检查1的结果进行阻塞; 操作2. 根据检查2的结果设置局部变量中断标记为true  
+                /**
+                 * 缩进表示执行条件上一步为真
+                 *
+                 * 检查1: 需要阻塞
+                 *    操作1: 阻塞
+                 *    检查2: 被中断
+                 *      操作2: 标记中断   
+                 */ 
+                if (shouldParkAfterFailedAcquire(p, node) &&
+                    parkAndCheckInterrupt())
+                    interrupted = true;
+            }
+        } finally {
+            if (failed)
+                cancelAcquire(node);
+        }
+    }
+}
+```
+
+```java
+class Code{
+    /**
+     * Inserts node into queue, initializing if necessary. See picture above.
+     * @param node the node to insert
+     * @return 返回前节点, 目的是为了用前节点的状态做判断, 前节点等待状态是取消或者发生改变, 则唤醒当前节点. 
+     *
+     */
+    private Node enq(final Node node) {
+        for (;;) {
+            Node t = tail;
+            if (t == null) { // Must initialize
+                if (compareAndSetHead(new Node()))
+                    tail = head;
+                    t = tail;
+                    node.pre  = t;
+                    compareAndSetTail(t,node);
+                    t.next = node;
+                    
+            } else {
+                node.prev = t;
+                if (compareAndSetTail(t, node)) {
+                    t.next = node;
+                    return t;
+                }
+            }
+        }
+    }
+    /**
+     * Transfers a node from a condition queue onto sync queue.
+     * Returns true if successful.
+     * @param node the node
+     * @return true if successfully transferred (else the node was
+     * cancelled before signal).
+     */
+    final boolean transferForSignal(Node node) {
+        /*
+         * If cannot change waitStatus, the node has been cancelled.
+         */
+        if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
+            return false;
+
+        /*
+         * Splice onto queue and try to set waitStatus of predecessor to
+         * indicate that thread is (probably) waiting. If cancelled or
+         * attempt to set waitStatus fails, wake up to resync (in which
+         * case the waitStatus can be transiently and harmlessly wrong).
+         * 猜测发生改变的原因最大的可能是前节点发生了改变,变成了头结点. 但是错误唤醒当前的节点并没有太大的危害
+         */
+        Node p = enq(node);
+        int ws = p.waitStatus;
+        if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
+            LockSupport.unpark(node.thread);
+        return true;
+    }
+
+}
+```
+
+```java
+/**
+ * 
+ */
+class Code { 
+    /**
+     * java.util.concurrent.locks.AbstractQueuedSynchronizer#apparentlyFirstQueuedIsExclusive
+     *
+     * Returns {@code true} if the apparent first queued thread, if one
+     * exists, is waiting in exclusive mode.  If this method returns
+     * {@code true}, and the current thread is attempting to acquire in
+     * shared mode (that is, this method is invoked from {@link
+     * #tryAcquireShared}) then it is guaranteed that the current thread
+     * is not the first queued thread.  Used only as a heuristic in
+     * ReentrantReadWriteLock.
+     * 检查是否需要互斥 如果队列里第一个节点不是共享模式, 且存在线程则需要互斥.
+     */
+    final boolean apparentlyFirstQueuedIsExclusive() {
+        Node h, s;
+        return (h = head) != null &&
+            (s = h.next)  != null &&
+            !s.isShared()         &&
+            s.thread != null;
+    }
+    
+    // java.util.concurrent.locks.ReentrantReadWriteLock.NonfairSync#readerShouldBlock
+    final boolean readerShouldBlock() {
+        /* As a heuristic to avoid indefinite writer starvation,
+         * block if the thread that momentarily appears to be head
+         * of queue, if one exists, is a waiting writer.  This is
+         * only a probabilistic effect since a new reader will not
+         * block if there is a waiting writer behind other enabled
+         * readers that have not yet drained from the queue.
+         * 防止写线程饥饿, 当等待队列里第一个节点是写线程那么当前读线程阻塞.
+         */
+        return apparentlyFirstQueuedIsExclusive();
+    }
+
+}
+```
+
+`Latch`的作用是阻塞某(几)个线程的执行,等到满足数量的其他线程执行结束后唤醒.
