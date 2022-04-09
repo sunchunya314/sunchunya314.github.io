@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang='en'>
+<html lang='zh-CN'>
 
 <head>
   <meta name="generator" content="Hexo 6.1.0">
@@ -17,19 +17,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#f8f8f8">
-  <title>AbstractQueuedSynchronizer - Hexo</title>
+  <title>AbstractQueuedSynchronizer - Java Code</title>
 
   
     <meta name="description" content="原理段1 Provides a framework for implementing blocking locks and related synchronizers (semaphores, events, etc) that rely on first-in-first-out (FIFO) wait queues.  This class is designed to be a useful">
 <meta property="og:type" content="article">
 <meta property="og:title" content="AbstractQueuedSynchronizer">
-<meta property="og:url" content="http://example.com/2022/03/29/Code/Concurrence/AbstractQueuedSynchronizer/index.html">
-<meta property="og:site_name" content="Hexo">
+<meta property="og:url" content="https://sunchunya314.github.io/2022/03/29/Code/Concurrence/AbstractQueuedSynchronizer/index.html">
+<meta property="og:site_name" content="Java Code">
 <meta property="og:description" content="原理段1 Provides a framework for implementing blocking locks and related synchronizers (semaphores, events, etc) that rely on first-in-first-out (FIFO) wait queues.  This class is designed to be a useful">
-<meta property="og:locale" content="en_US">
+<meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-03-29T03:12:53.000Z">
 <meta property="article:modified_time" content="2022-04-06T02:47:15.631Z">
-<meta property="article:author" content="John Doe">
+<meta property="article:author" content="Sunchunya">
 <meta property="article:tag" content="并发">
 <meta property="article:tag" content="多线程">
 <meta name="twitter:card" content="summary">
@@ -46,6 +46,8 @@
   
 
   
+    <link rel="shortcut icon" href="/%5Bobject%20Object%5D">
+  
 
   
 </head>
@@ -61,12 +63,12 @@
 
 <header class="header">
 
-<div class="logo-wrap"><a class="title" href="/"><div class="main">Hexo</div></a></div>
+<div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://cdn.jsdelivr.net/gh/cdn-x/placeholder@1.0.2/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar.png" onerror="javascript:this.classList.add('error');this.src='https://cdn.jsdelivr.net/gh/cdn-x/placeholder@1.0.1/image/2659360.svg';"></a><a class="title" href="/"><div class="main">Java Code</div></a></div>
 <nav class="menu dis-select"></nav></header>
 
 <div class="widgets">
 
-<div class="widget-wrap single" id="toc"><div class="widget-header cap dis-select"><span class="name">TOC</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-text">原理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AE%B51"><span class="toc-text">段1</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AE%B52"><span class="toc-text">段2</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E6%B3%95"><span class="toc-text">用法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E4%B8%BE%E4%BE%8B"><span class="toc-text">使用举例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link"><span class="toc-text">Usage Examples</span></a></li></ol></div></div></div>
+<div class="widget-wrap single" id="toc"><div class="widget-header cap dis-select"><span class="name">本文目录</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-text">原理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AE%B51"><span class="toc-text">段1</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AE%B52"><span class="toc-text">段2</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E6%B3%95"><span class="toc-text">用法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E4%B8%BE%E4%BE%8B"><span class="toc-text">使用举例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link"><span class="toc-text">Usage Examples</span></a></li></ol></div></div></div>
 
 
 </div>
@@ -79,7 +81,7 @@
       
 
 
-<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/code/">code</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/code/concurrence/">concurrence</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2022-03-29T03:12:53.000Z">2022-03-29</time></div></div>
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">主页</a><span class="sep"></span><a class="cap breadcrumb" href="/">文章</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/code/">code</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/code/concurrence/">concurrence</a></div><div id="post-meta">发布于&nbsp;<time datetime="2022-03-29T03:12:53.000Z">2022-03-29</time></div></div>
 
 <article class='content md post'>
 <h1 class="article-title"><span>AbstractQueuedSynchronizer</span></h1>
@@ -310,7 +312,7 @@
 
 
 
-<p><a target="_blank" rel="noopener" href="https://sunchunya314.github.io/">https://sunchunya314.github.io/</a></p>
+<p><a href="https://sunchunya314.github.io/">https://sunchunya314.github.io/</a></p>
 <p>22</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Code</span>&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Various flavors of acquire, varying in exclusive/shared and</span></span><br><span class="line"><span class="comment">     * control modes.  Each is mostly the same, but annoyingly</span></span><br><span class="line"><span class="comment">     * different.  Only a little bit of factoring is possible due to</span></span><br><span class="line"><span class="comment">     * interactions of exception mechanics (including ensuring that we</span></span><br><span class="line"><span class="comment">     * cancel if tryAcquire throws exception) and other control, at</span></span><br><span class="line"><span class="comment">     * least not without hurting performance too much.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Acquires in exclusive uninterruptible mode for thread already in</span></span><br><span class="line"><span class="comment">     * queue. Used by condition wait methods as well as acquire.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> node the node</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> arg the acquire argument</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> &#123;<span class="doctag">@code</span> true&#125; if interrupted while waiting</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="type">int</span> arg)</span> &#123;</span><br><span class="line">        <span class="comment">// 局部变量: 标记是否获取失败</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">failed</span> <span class="operator">=</span> <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 局部变量: 标记是否被中断</span></span><br><span class="line">            <span class="type">boolean</span> <span class="variable">interrupted</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">            <span class="comment">// 自旋</span></span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                <span class="comment">// 前节点</span></span><br><span class="line">                <span class="keyword">final</span> <span class="type">Node</span> <span class="variable">p</span> <span class="operator">=</span> node.predecessor();</span><br><span class="line">                <span class="comment">// 2步检查, 1.前节点是否头结点 2.1为真则尝试获取锁</span></span><br><span class="line">                <span class="comment">// 1步操作, 1.更新头结点,跳出循环, 返回中断状态</span></span><br><span class="line">                <span class="comment">/**</span></span><br><span class="line"><span class="comment">                 * 检查1: 前节点==头结点</span></span><br><span class="line"><span class="comment">                 *     检查2: 尝试获取锁</span></span><br><span class="line"><span class="comment">                 *         操作1: 更新头结点并返回false</span></span><br><span class="line"><span class="comment">                 */</span></span><br><span class="line">                <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                    setHead(node);</span><br><span class="line">                    p.next = <span class="literal">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                    <span class="comment">// 失败标记设为false</span></span><br><span class="line">                    failed = <span class="literal">false</span>;</span><br><span class="line">                    <span class="comment">// 返回中断状态</span></span><br><span class="line">                    <span class="keyword">return</span> interrupted;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// 如果前节点不是头结点, 或者获取锁失败 -&gt; 进行两步检查,两步步操作</span></span><br><span class="line">                <span class="comment">// 检查1.检查根据前节点等待状态决定当前线程是否需要阻塞 2.检查阻塞是否被中断</span></span><br><span class="line">                <span class="comment">// 操作1. 根据检查1的结果进行阻塞; 操作2. 根据检查2的结果设置局部变量中断标记为true  </span></span><br><span class="line">                <span class="comment">/**</span></span><br><span class="line"><span class="comment">                 * 缩进表示执行条件上一步为真</span></span><br><span class="line"><span class="comment">                 *</span></span><br><span class="line"><span class="comment">                 * 检查1: 需要阻塞</span></span><br><span class="line"><span class="comment">                 *    操作1: 阻塞</span></span><br><span class="line"><span class="comment">                 *    检查2: 被中断</span></span><br><span class="line"><span class="comment">                 *      操作2: 标记中断   </span></span><br><span class="line"><span class="comment">                 */</span> </span><br><span class="line">                <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                    parkAndCheckInterrupt())</span><br><span class="line">                    interrupted = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (failed)</span><br><span class="line">                cancelAcquire(node);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -321,12 +323,12 @@
 <p><code>Latch</code>的作用是阻塞某(几)个线程的执行,等到满足数量的其他线程执行结束后唤醒.</p>
 
 
-<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>许可协议</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
 </div></section></div>
 
 </article>
 
-<div class="related-wrap reveal" id="read-next"><section class="header cap theme"><span>READ NEXT</span></section><section class="body fs14"><a id="next" href="/2022/03/29/Cloud/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/">分布式事务解决方案之TCC<span class="note">Older</span></a><div class="line"></div><a id="prev" href="/2022/04/04/Code/Concurrence/AQS/">AQS框架概述(译文)<span class="note">Newer</span></a></section></div>
+<div class="related-wrap reveal" id="read-next"><section class="header cap theme"><span>接下来阅读</span></section><section class="body fs14"><a id="next" href="/2022/03/29/Cloud/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8BTCC/">分布式事务解决方案之TCC<span class="note">较早</span></a><div class="line"></div><a id="prev" href="/2022/04/04/Code/Concurrence/AQS/">AQS框架概述(译文)<span class="note">较新</span></a></section></div>
 
 
 
@@ -336,8 +338,8 @@
 
 
       
-<footer class="page-footer reveal fs12"><hr><div class="text"><p>All articles in this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</p>
-<p>This site was deployed by <a href="http://example.com/">@John Doe</a> using <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1" title="v1.6.1">Stellar</a>.</p>
+<footer class="page-footer reveal fs12"><hr><div class="text"><p>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+<p>本站由 <a href="https://sunchunya314.github.io/">@Sunchunya</a> 创建，使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1" title="v1.6.1">Stellar</a> 作为主题。</p>
 </div></footer>
 
       <div class='float-panel mobile-only blur' style='display:none'>
@@ -444,11 +446,11 @@
   stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1';
   stellar.config = {
     date_suffix: {
-      just: 'Just',
-      min: 'minutes ago',
-      hour: 'hours ago',
-      day: 'days ago',
-      month: 'months ago',
+      just: '刚刚',
+      min: '分钟前',
+      hour: '小时前',
+      day: '天前',
+      month: '个月前',
     },
   };
 
