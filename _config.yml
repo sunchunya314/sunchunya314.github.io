@@ -3,17 +3,20 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
+title: Java Code
+avatar: https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar.png
 subtitle: ''
 description: ''
 keywords:
-author: John Doe
-language: en
+author: Sunchunya
+language:
+  - zh-CN
+  - en
 timezone: ''
 
 # URL
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
-url: http://example.com
+url: https://sunchunya314.github.io/
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
@@ -105,3 +108,14 @@ deploy:
   type: git
   repo: git@github.com:sunchunya314/sunchunya314.github.io.git
   branch: deploy
+
+inject:
+  head:
+    - <link rel="apple-touch-icon" sizes="180x180" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar-16x16.png">
+    - <link rel="icon" type="image/png" sizes="32x32" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar-32x32.png">
+    - <link rel="icon" type="image/png" sizes="16x16" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar-16x16.png">
+#    - <link rel="manifest" href="https://cdn.jsdelivr.net/gh/cdn-x/xaoxuu@1.0.4/favicon/site.webmanifest">
+    - <link rel="shortcut icon" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar.png">
+    - <meta name="theme-color" content="#f8f8f8">
+
+
