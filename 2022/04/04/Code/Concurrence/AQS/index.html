@@ -9,6 +9,7 @@
   <meta http-equiv='x-dns-prefetch-control' content='on' />
   <link rel='dns-prefetch' href='https://cdn.jsdelivr.net'>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
 
   <meta name="renderer" content="webkit">
   <meta name="force-rendering" content="webkit">
@@ -18,6 +19,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#f8f8f8">
   <title>AQS框架概述(译文) - Java Code</title>
+
+  
 
   
     <meta name="description" content="作者: Doug Lea 摘要 原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This fr">
@@ -30,7 +33,7 @@
 <meta property="og:image" content="https://scyblog.oss-cn-shanghai.aliyuncs.com/2022/04/04/node_status.jpg">
 <meta property="og:image" content="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/barging_thread.png">
 <meta property="article:published_time" content="2022-04-04T02:16:55.000Z">
-<meta property="article:modified_time" content="2022-04-09T03:51:55.748Z">
+<meta property="article:modified_time" content="2022-04-09T10:52:31.883Z">
 <meta property="article:author" content="Sunchunya">
 <meta property="article:tag" content="并发">
 <meta property="article:tag" content="多线程">
@@ -49,14 +52,26 @@
   
 
   
-    <link rel="shortcut icon" href="/%5Bobject%20Object%5D">
-  
 
+  
+    
+      <link rel="apple-touch-icon" sizes="180x180" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar-16x16.png">
+    
+      <link rel="icon" type="image/png" sizes="32x32" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar-32x32.png">
+    
+      <link rel="icon" type="image/png" sizes="16x16" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar-16x16.png">
+    
+      <link rel="shortcut icon" href="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/avatar.png">
+    
+      <meta name="theme-color" content="#f8f8f8">
+    
   
 </head>
 
 <body>
   
+
+
 
 
   <div class='l_body' id='start'>
@@ -82,7 +97,6 @@
       
 
       
-
 
 <div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">主页</a><span class="sep"></span><a class="cap breadcrumb" href="/">文章</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/code/">code</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/code/concurrence/">concurrence</a></div><div id="post-meta">发布于&nbsp;<time datetime="2022-04-04T02:16:55.000Z">2022-04-04</time></div></div>
 
@@ -144,7 +158,9 @@ each synchronizer supports:
 <p>Synchronizers may vary according to whether they manage only exclusive states – those<br>in which only one thread at a time may continue past a possible blocking point – versus<br>possible shared states in which multiple threads can at least sometimes proceed.<br>Regular lock classes of course maintain only exclusive state, but counting semaphores,<br>for example, may be acquired by as many threads as the count permits.<br>To be widely useful, the framework must support both modes of operation.<br>The java.util.concurrent package also defines interface Condition, supporting monitor-style<br>await&#x2F;signal operations that may be associated with exclusive Lock classes,<br>and whose implementations are intrinsically intertwined with their associated Lock classes.<br></pre></p>
 </details>
 
-<h3 id="2-1-功能"><a href="#2-1-功能" class="headerlink" title="2.1 功能"></a>2.1 功能</h3><p>同步器执行两种类型的方法: 至少一个<code>acquire</code>来阻塞调用线程直到同步状态允许它继续执行,<br>至少一个<code>release</code>操作来改变同步状态来允许一个或多个被阻塞线程解锁.<br><code>java.util.concurrent</code>并发包没有为同步器定义一个统一标准的API. 一些是通过通用的接口<br>(例如<code>Lock</code>)来定义, 但是其他的包括专门的版本.<br>所以, <code>acquire</code> 和 <code>release</code>操作在不同的类里有不同形式的名字. 例如, 方法<code>Lock.lock</code>,<br><code>Semaphore.acquire</code>,<br><code>CountDownLatch.await</code>,<code>FutureTask.get</code> 都对应着框架的<code>acquire</code>操作. 然而, 这个<br>包并没有为不同的类维护一个一致的协议来支持一定范围的通用使用选项范围.<br>有意义的是, 每个同步器支持如下三点:</p>
+<h3 id="2-1-功能"><a href="#2-1-功能" class="headerlink" title="2.1 功能"></a>2.1 功能</h3><p>同步器执行两种类型的方法: 至少一个<code>acquire</code>来阻塞调用线程直到同步状态允许它继续执行,<br>至少一个<code>release</code>操作来改变同步状态来允许一个或多个被阻塞线程解锁.<br><code>java.util.concurrent</code>并发包没有为同步器定义一个统一标准的API. 一些是通过通用的接口<br>(例如<code>Lock</code>)来定义, 但是其他的包括专门的版本.</p>
+<p>所以, <code>acquire</code> 和 <code>release</code>操作在不同的类里有不同形式的名字. 例如, 方法<code>Lock.lock</code>,<br><code>Semaphore.acquire</code>, <code>CountDownLatch.await</code>,<code>FutureTask.get</code> 都对应着框架的<br><code>acquire</code>操作. 然而, 这个包并没有为不同的类维护一个一致的协议来支持一定范围的通用使用<br>选项范围. </p>
+<p>有意义的是, 每个同步器支持如下三点:</p>
 <ul>
 <li>非阻塞的同步尝试(例如, <code>tryLock</code>)以及阻塞版本.</li>
 <li>可选的超时, 应用可以放弃等待.</li>
@@ -166,7 +182,7 @@ each synchronizer supports:
 <h3 id="2-2-性能目标"><a href="#2-2-性能目标" class="headerlink" title="2.2 性能目标"></a>2.2 性能目标</h3><p>Java 内置锁(通过<code>synchronized</code>关键字锁住方法和代码块)一直有性能问题, 并且它们的<br>实现结构有很多的问题. 然而, 这个工作的主要焦点是在最小化空间开销(因为任何java对象<br>都可以作为一个锁对象)和最小化时间开销, 当在单处理器以单线程为主的上下文中使用.<br>下面这些问题对同步器都不是主要问题:<br>程序员只在需要时构建同步器, 所以没有必要压缩可能会浪费的空间,<br>一个同步器在多线程设计(多处理器中更容易发生)中主要是互斥模式, 会有竞争出现.<br>所以JVM对内置锁的优化策略主要在<code>零-竞争</code>的场景,<br>对于其他的场景无法预测的<code>慢路径</code>处理策略主要依赖<code>java.util.concurrent</code>并发包.</p>
 <p>于是, 这里主要的性能目标是可量测性: 甚至是可预见性的维护效率, 或者特别是, 当同步器被竞争的时候.<br>理想情况下, 通过同步点的开销应该是一个与线程数无关的常量.<br>其中的主要目标是最小化线程从允许有通过一个同步点到通过的持续时间总量.<br>然而, 这个必须会资源因素平衡, 包括总的CPU时间需求, 内存流量, 以及线程调度开销.<br>例如, 自旋锁通常比阻塞锁的时间需求更短, 但是会浪费循环和需要更多的内存竞争, 所以不经常使用.</p>
 <p>这些目标通过两种使用方式达到. 大部分的应用一个个最大化总吞吐量, 能容忍(最好避免)饥饿.<br>然而在资源控制的应用中, 维护访问的线程的公平性更重要, 容忍较低的吞吐量.<br>没有框架可以在这些目标冲突中替用户决定选择哪种方案.<br>框架必须能适应不同的公平策略.</p>
-<p>无论内部是多么精心的设计, 在某些应用中同步器都会存在性能瓶颈.<br>此外, 框架必须允许监控和观察基本操作让用户发现和减轻瓶颈.<br>这个需要通过一个决定的多少线程被阻塞的方式.</p>
+<p>无论内部是多么精心的设计, 在某些应用中同步器都会存在性能瓶颈.<br>此外, 框架必须允许监控和观察基本操作让用户发现和减轻瓶颈.<br>这最小限度（也是最有用的）需要提供一种方法来确定有多少线程被阻塞。</p>
 <h2 id="3-设计和实现"><a href="#3-设计和实现" class="headerlink" title="3. 设计和实现"></a>3. 设计和实现</h2><details>
 <summary><font size="2" color="grey"><i>原文</i></font></summary>
 <pre>
@@ -441,7 +457,7 @@ upon construction.
 
       
 <footer class="page-footer reveal fs12"><hr><div class="text"><p>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
-<p>本站由 <a href="https://sunchunya314.github.io/">@Sunchunya</a> 创建，使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1" title="v1.6.1">Stellar</a> 作为主题。</p>
+<p>本站由 <a href="https://sunchunya314.github.io/">@Sunchunya</a> 创建，使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.7.0" title="v1.7.0">Stellar</a> 作为主题。</p>
 </div></footer>
 
       <div class='float-panel mobile-only blur' style='display:none'>
@@ -545,7 +561,7 @@ upon construction.
       }
     }
   };
-  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.6.1';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.7.0';
   stellar.config = {
     date_suffix: {
       just: '刚刚',
@@ -575,6 +591,12 @@ upon construction.
   }
   if ('true' == 'true') {
     stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://cdn.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://cdn.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti/umd/heti.min.css","js":"https://unpkg.com/heti/umd/heti-addon.min.js"});
   }
 </script>
 
