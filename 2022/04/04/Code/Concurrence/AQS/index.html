@@ -20,19 +20,22 @@
   <title>AQS框架概述(译文) - Hexo</title>
 
   
-    <meta name="description" content="摘要 原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This framework provi">
+    <meta name="description" content="作者: Doug Lea 摘要 原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This fr">
 <meta property="og:type" content="article">
 <meta property="og:title" content="AQS框架概述(译文)">
 <meta property="og:url" content="http://example.com/2022/04/04/Code/Concurrence/AQS/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="摘要 原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This framework provi">
+<meta property="og:description" content="作者: Doug Lea 摘要 原文  Most synchronizers (locks, barriers, etc.) in the J2SE1.5 java.util.concurrent package  are constructed using a small framework based on class AbstractQueuedSynchro- nizer. This fr">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://scyblog.oss-cn-shanghai.aliyuncs.com/2022/04/04/node_status.jpg">
+<meta property="og:image" content="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/barging_thread.png">
 <meta property="article:published_time" content="2022-04-04T02:16:55.000Z">
-<meta property="article:modified_time" content="2022-04-09T02:50:32.972Z">
+<meta property="article:modified_time" content="2022-04-09T03:44:07.076Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="并发">
 <meta property="article:tag" content="多线程">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://scyblog.oss-cn-shanghai.aliyuncs.com/2022/04/04/node_status.jpg">
   
   
 
@@ -83,6 +86,7 @@
 
 <article class='content md post'>
 <h1 class="article-title"><span>AQS框架概述(译文)</span></h1>
+<p>作者: Doug Lea</p>
 <h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><details>
 <summary><font size="2" color="grey"><i>原文</i></font></summary>
 <pre>
@@ -238,8 +242,6 @@ operation will have no effect.
 <p>The heart of the framework is maintenance of queues of blocked threads, which are<br>restricted here to FIFO queues. Thus, the framework does not support priority-based<br>synchronization.</p>
 <p>These days, there is little controversy that the most appropriate choices for<br>synchronization queues are non-blocking data structures that do not themselves<br>need to be constructed using lower-level locks. And of these, there are two main<br>candidates: variants of Mellor-Crummey and Scott (MCS) locks [9], and variants of<br>Craig, Landin, and Hagersten (CLH) locks [5][8][10]. Historically, CLH locks have<br>been used only in spinlocks. However, they appeared more amenable than MCS for use<br>in the synchronizer framework because they are more easily adapted to handle<br>cancellation and timeouts, so were chosen as a basis. The resulting design is far<br>enough removed from the original CLH structure to require explanation.</p>
 <p>A CLH queue is not very queue-like, because its enqueuing and dequeuing<br>operations are intimately tied to its uses as a lock. It is a linked queue<br>accessed via two atomically updatable fields, head and tail, both initially<br>pointing to a dummy node.</p>
-
-
 <p>A new node, node, is enqueued using an atomic operation:<br><code><br>    do &#123;<br>        pred = tail;<br>    &#125; while(!tail.compareAndSet(pred, node));<br></code><br>The release status for each node is kept in its predecessor node.<br>So, the “spin” of a spinlock looks like:<br><code><br>    while (pred.status != RELEASED) ; // spin<br>    A dequeue operation after this spin simply entails setting the head<br></code><br>field to the node that just got the lock:<br><code><br>    head = node;<br></code><br>Among the advantages of CLH locks are that enqueuing and dequeuing are fast,<br>lock-free, and obstruction free (even under contention, one thread will always<br>win an insertion race so will make progress); that detecting whether any threads<br>are waiting is also fast (just check if head is the same as tail); and that release<br>status is decentralized, avoiding some memory contention.</p>
 <p>In the original versions of CLH locks, there were not even links connecting nodes.<br>In a spinlock, the pred variable can be held as a local. However, Scott and Scherer[10]<br>showed that by explicitly maintaining predecessor fields within nodes, CLH locks can<br>deal with timeouts and other forms of cancellation: If a node’s predecessor cancels,<br>the node can slide up to use the previous node’s status field.</p>
 <p>The main additional modification needed to use CLH queues for blocking synchronizers<br>is to provide an efficient way for one node to locate its successor. In spinlocks,<br>a node need only change its status, which will be noticed on next spin by its successor,<br>so links are unnecessary. But in a blocking synchronizer, a node needs to explicitly<br>wake up (unpark) its successor.</p>
@@ -255,6 +257,7 @@ operation will have no effect.
 <p>框架的心脏是阻塞线程队列的维护, 这里限定为<code>FIFO</code>队列. 此外, 框架不支持基于优先级的同步.</p>
 <p>这些天, 关于同步队列最合适的选择有一些争论, 同步队列是不需要使用低级别锁的非阻塞数据机构.<br>基于此, 有两个主要的候选人: MCS锁变体, CLH锁变体. 历史上, CLH锁只在自旋锁中使用. 然而.<br>在同步器框架中它们比MCS更容易控制, 因为它们更容易适应处理取消和超时, 所以被选做基础.<br>所产生的设计与原始的CLH结构非常遥远，需要进行解释。</p>
 <p>一个CLH队列不是很像队列, 因为他的入队和出队操作与它作为锁的用途紧密相连. 它是一个链表队列,<br>通过两个原子更新的字段访问, 头和尾, 初始化时都是指向一个虚拟节点.</p>
+<p><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="https://scyblog.oss-cn-shanghai.aliyuncs.com/2022/04/04/node_status.jpg" alt="图片"></p>
 <p>一个新的节点, 入队采用原子操作:</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">do&#123;</span><br><span class="line">    pred = tail;</span><br><span class="line">&#125; while(!tail.comapreAndSet(pred,node));</span><br></pre></td></tr></table></figure>
 
@@ -378,6 +381,7 @@ access that is "intended" for the first thread at the head of the queue.
 
 <p>即使它们是基于<code>FIFO</code>队列, 同步器不是必须公平. 注意一下基础的<code>acquire</code>算法, 在入队之前执<br>行了<code>tryAcquire</code>. 那么一个新来的想要获取的线程可以从队列头部第一个准备获取的线程手里<code>偷到</code><br>访问权.</p>
 <p>这个允许插队的<code>FIFO</code>策略主要比其他技术提供更高的聚合吞吐量. 它减少了锁的闲置时间, 即一把<br>被竞争的锁虽然可以获取但由于下一个线程还在唤醒的过程中导致没有线程持有它. 与此同时, 它只<br>允许一个(第一个)队列的线程在任何释放的时候醒来并尝试获取, 从而避免了过度的无效的争用.<br>开发人员可能在创建同步器的时候进一步的增强闯入效果, 只需要在定义<code>tryAcquire</code>的时候自身<br>多试几次, 在返回控制之前.</p>
+<p><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="https://scyblog.oss-cn-shanghai.aliyuncs.com/code/barging_thread.png"></p>
 <p>插队式先进先出同步器只有一个只有概率性的公平性. 锁队列头部的唤醒线程面对突然插队的线程<br>有一个无偏差的机会赢得比赛, 输了的话会再次阻塞并重新获取. 然而, 如果闯入的线程到达的速率<br>比唤醒线程的速度要快, 那么队列里第一个线程很难赢得竞赛, 所以将会一直再次阻塞, 并且它的<br>后继节点也会一直保持阻塞. 对于简单持有的同步器, 第一个线程解除阻塞的时间内, 在多处理器上<br>发生插队和释放是很常见的. 如下图所示, 净效应是保持一个或多个线程高执行率, 并尽可能<br>避免出现饥饿.</p>
 <p>当需要更高的公平性时, 安排它是一件相对简单的事情. 程序员需要严格的公平性,<br>使用方法<code>getFirstQueuedThread</code>检查, 如果当前线程不在队列的头部<br>可以定义<code>tryAcquire</code>失败(返回<code>false</code>).</p>
 <p>一个更快, 但不严格的变体时, 如果队列(暂时)为空, 也允许<code>tryAcquire</code>成功.<br>在这个场景下, 多个线程遇到一个空队列可能会竞赛来第一个获取, 通常至少没有一个<br>人在排队. <code>java.util.concurrent</code>并发包里所有的同步器都采用这个策略来<br>支持<code>公平性</code>模式.</p>
